@@ -1,5 +1,7 @@
 #include <Arduino.h>
 
+#include <credentials.h>
+
 #include <TM1638.h>
 
 // define a module on data pin 12, clock pin 13 and strobe pin 11 
@@ -9,7 +11,9 @@ byte buttons;
 
 int Players = 1;
 int Cards = 5;
- 
+
+
+
 void setup() {
 
   Serial.begin(9600);
@@ -21,7 +25,7 @@ void loop() {
   module.setDisplayDigit(Cards, 4, false);
  
   buttons = module.getButtons();
-
+  
   Serial.print (Players);
   Serial.print (",");
   Serial.println (Cards);
