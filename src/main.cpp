@@ -1,58 +1,74 @@
-#include <Arduino.h>
+#include <WiFi.h>
+#include <TelnetStream.h>
 
 #include <credentials.h>
 
-#include <TM1638.h>
+#define HallSensor 22
 
-// define a module on data pin 12, clock pin 13 and strobe pin 11
-TM1638 module(12, 13, 11, true, 1);
-
-byte buttons;
-
-int Players = 1;
-int Cards = 5;
+int val; 
+int HallSensorResult = 0;
 
 unsigned long Time;
 
-void setup()
-{
+///////please enter your sensitive data in the Secret tab/arduino_secrets.h
+const char ssid[] = SECRET_SSID;    // your network SSID (name)
+const char pass[] = SECRET_PASS;    // your network password (use for WPA, or use as key for WEP)
 
-  Serial.begin(9600);
+void setup() {
+  Serial.begin(115200);
+
+  Serial.print("Attempting to connect to WPA SSID: ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, pass);
+  delay(1);
+  WiFi.setHostname("Hall-effect_sensor_ESP32_Node");
+  delay(1);
+  Serial.println(WiFi.getHostname());
+  if (WiFi.waitForConnectResult() != WL_CONNECTED) {
+    Serial.println("Failed to connect.");
+    while (1) {
+      delay(10);
+    }
+  }
+
+  IPAddress ip = WiFi.localIP();
+  Serial.println();
+  Serial.println("Connected to WiFi network.");
+  Serial.print("Connect with Telnet client to ");
+  Serial.println(ip);
+
+  TelnetStream.begin();
 }
 
-void loop()
-{
+void loop() {
 
   Time = millis();
-  // display a variables at 1st and 5th position
-  module.setDisplayDigit(Players, 0, false);
-  module.setDisplayDigit(Cards, 4, false);
 
-  buttons = module.getButtons();
+  switch (TelnetStream.read()) {
+    case 'R':
+    TelnetStream.stop();
+    delay(100);
+    ESP.restart();
+      break;
+    case 'C':
+      TelnetStream.println("bye bye");
+      TelnetStream.flush();
+      TelnetStream.stop();
+      break;
+  }
 
-  Serial.print(Time);
-  Serial.print(",");
-  Serial.print(Players);
-  Serial.print(",");
-  Serial.println(Cards);
-  delay(100);
-
-  if (buttons != 0)
+  val = digitalRead (HallSensor);
+  if (val == LOW)
   {
-    delay(300);
-
-    switch (buttons)
-    {
-    case 1:
-      Players = Players + 1;
-      Cards = Cards + Players;
-      buttons = 0;
-      break;
-    case 2:
-      Players = Players - 1;
-      Cards = Cards - Players;
-      buttons = 0;
-      break;
-    }
+    HallSensorResult = 1;
+    TelnetStream.print(Time);
+    Serial.print(Time);
+    TelnetStream.print(",");
+    Serial.print(";");
+    TelnetStream.println(HallSensorResult);
+    Serial.print(HallSensorResult);
+  }
+  else
+  {
   }
 }
